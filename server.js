@@ -6,6 +6,9 @@ const app = express();
 const notFound = require('./middlewares/notFound');
 const serverError = require('./middlewares/serverError');
 
+// Routes
+const categoriesRoutes = require('./routes/categoriesRoutes');
+
 // Config
 const PORT = process.env.PORT || 3000;
 
@@ -16,6 +19,9 @@ app.use(express.json());
 app.get('/', (req, res) => {
     res.json({ message: 'Server is running' });
 });
+
+// API Routes
+app.use('/api/categories', categoriesRoutes);
 
 // Gestione errori
 app.use(notFound);
