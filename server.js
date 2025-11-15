@@ -10,6 +10,7 @@ const serverError = require('./middlewares/serverError');
 const categoriesRoutes = require('./routes/categoriesRoutes');
 const couponsRoutes = require('./routes/couponsRoutes');
 const invoicesRoutes = require('./routes/invoicesRoutes');
+const productsRoutes = require('./routes/productsRoutes');
 
 // Config
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ app.get('/', (req, res) => {
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/coupons', couponsRoutes);
 app.use('/api/invoices', invoicesRoutes);
+app.use('/api/products', productsRoutes);
 
 // Gestione errori
 app.use(notFound);
