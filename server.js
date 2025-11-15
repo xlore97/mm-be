@@ -8,6 +8,7 @@ const serverError = require('./middlewares/serverError');
 
 // Routes
 const categoriesRoutes = require('./routes/categoriesRoutes');
+const couponsRoutes = require('./routes/couponsRoutes');
 
 // Config
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/coupons', couponsRoutes);
 
 // Gestione errori
 app.use(notFound);
