@@ -5,6 +5,8 @@ const app = express();
 // Middleware
 const notFound = require('./middlewares/notFound');
 const serverError = require('./middlewares/serverError');
+//import middleware gestione path immagini
+const imagePath = require("./middlewares/imagePath")
 
 // Routes
 const categoriesRoutes = require('./routes/categoriesRoutes');
@@ -18,6 +20,9 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware globali
 app.use(express.json());
+
+//registro middleware gestione paths
+app.use(imagePath);
 
 // Route di test
 app.get('/', (req, res) => {
