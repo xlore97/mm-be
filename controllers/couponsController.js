@@ -1,0 +1,114 @@
+const db = require('../config/db');
+
+// GET /api/coupons
+const getAll = async (req, res, next) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM coupons ORDER BY id DESC');
+        res.json({ success: true, data: rows });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// GET /api/coupons/:id
+const getById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (!Number.isInteger(Number(id))) {
+            return res.status(400).json({ success: false, error: { message: 'Invalid id' } });
+        }
+
+        const [rows] = await db.query('SELECT * FROM coupons WHERE id = ?', [id]);
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ success: false, error: { message: 'Coupon not found' } });
+        }
+
+        res.json({ success: true, data: rows[0] });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// POST /api/coupons
+const create = async (req, res, next) => {
+    try {
+        const { code, starting_date, expiration_date, discount, is_valid } = req.body;
+
+        if (!code) {
+            return res.status(400).json({ success: false, error: { message: 'Field "code" is required' } });
+        }
+
+        const [result] = await db.query(
+            'INSERT INTO coupons (code, starting_date, expiration_date, discount, is_valid) VALUES (?, ?, ?, ?, ?)',
+            [code, starting_date || null, expiration_date || null, discount === undefined ? 0.00 : discount, is_valid === undefined ? 1 : is_valid]
+        );
+
+        const insertedId = result.insertId;
+        const [rows] = await db.query('SELECT * FROM coupons WHERE id = ?', [insertedId]);
+
+        res.status(201).json({ success: true, data: rows[0] });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// PUT /api/coupons/:id
+const update = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { code, starting_date, expiration_date, discount, is_valid } = req.body;
+
+        if (!/^\d+$/.test(String(id))) {
+            return res.status(400).json({ success: false, error: { message: 'Invalid id' } });
+        }
+
+        const [existing] = await db.query('SELECT * FROM coupons WHERE id = ?', [id]);
+        if (!existing || existing.length === 0) {
+            return res.status(404).json({ success: false, error: { message: 'Coupon not found' } });
+        }
+
+        const updatedCode = code || existing[0].code;
+        const updatedStarting = starting_date === undefined ? existing[0].starting_date : starting_date;
+        const updatedExpiration = expiration_date === undefined ? existing[0].expiration_date : expiration_date;
+        const updatedDiscount = discount === undefined ? existing[0].discount : discount;
+        const updatedIsValid = is_valid === undefined ? existing[0].is_valid : is_valid;
+
+        await db.query(
+            'UPDATE coupons SET code = ?, starting_date = ?, expiration_date = ?, discount = ?, is_valid = ? WHERE id = ?',
+            [updatedCode, updatedStarting, updatedExpiration, updatedDiscount, updatedIsValid, id]
+        );
+
+        const [rows] = await db.query('SELECT * FROM coupons WHERE id = ?', [id]);
+        res.json({ success: true, data: rows[0] });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// DELETE /api/coupons/:id
+const deleteOne = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (!Number.isInteger(Number(id))) {
+            return res.status(400).json({ success: false, error: { message: 'Invalid id' } });
+        }
+
+        const [existing] = await db.query('SELECT * FROM coupons WHERE id = ?', [id]);
+        if (!existing || existing.length === 0) {
+            return res.status(404).json({ success: false, error: { message: 'Coupon not found' } });
+        }
+
+        await db.query('DELETE FROM coupons WHERE id = ?', [id]);
+        res.json({ success: true, message: `Coupon ${id} deleted` });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = {
+    getAll,
+    getById,
+    create,
+    update,
+    deleteOne,
+};
