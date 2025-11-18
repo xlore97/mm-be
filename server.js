@@ -2,6 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 
+//inizlizzazione cors
+const cors = require("cors");
+
 // Middleware
 const notFound = require('./middlewares/notFound');
 const serverError = require('./middlewares/serverError');
@@ -23,6 +26,11 @@ app.use(express.json());
 
 //registro middleware gestione paths
 app.use(imagePath);
+
+// middleware per il CORS
+app.use(cors({
+origin: 'http://localhost:5173' 
+}));
 
 // Route di test
 app.get('/', (req, res) => {
