@@ -1,13 +1,46 @@
 const db = require('../config/db');
 
+// Helper per aggiungere il path completo dell'immagine usando il middleware imagePath
+function addImagePathToRow(row, req) {
+    if (!row) return row;
+    return {
+        ...row,
+        image: row.image ? `${req.imagePath}${row.image}` : null,
+    };
+}
+
 // GET /api/products
 const getAll = async (req, res, next) => {
     try {
         const limit = parseInt(req.query.limit) || 100;
         const offset = parseInt(req.query.offset) || 0;
 
-        const [rows] = await db.query('SELECT * FROM products ORDER BY id DESC LIMIT ? OFFSET ?', [limit, offset]);
-        res.json({ success: true, data: rows });
+        // Support per slug query: /api/products?slug=the-slug
+        if (req.query.slug) {
+            const slug = req.query.slug;
+            const [rows] = await db.query(
+                `SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.slug = ? LIMIT 1`,
+                [slug]
+            );
+            const transformed = rows.map((r) => {
+                const base = addImagePathToRow(r, req);
+                return { ...base, price: r.special_price ?? r.regular_price };
+            });
+            return res.json({ success: true, data: transformed });
+        }
+
+        // Default: include category name and compute price field
+        const [rows] = await db.query(
+            `SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC LIMIT ? OFFSET ?`,
+            [limit, offset]
+        );
+
+        const transformed = rows.map((r) => {
+            const base = addImagePathToRow(r, req);
+            return { ...base, price: r.special_price ?? r.regular_price };
+        });
+
+        res.json({ success: true, data: transformed });
     } catch (err) {
         next(err);
     }
@@ -17,16 +50,22 @@ const getAll = async (req, res, next) => {
 const getById = async (req, res, next) => {
     try {
         const { id } = req.params;
-        if (!/^\d+$/.test(String(id))) {
-            return res.status(400).json({ success: false, error: { message: 'Invalid id' } });
+        // Se id è numerico cerchiamo per id, altrimenti trattiamolo come slug
+        let rows;
+        if (/^\d+$/.test(String(id))) {
+            [rows] = await db.query(`SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`, [id]);
+        } else {
+            [rows] = await db.query(`SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.slug = ? LIMIT 1`, [id]);
         }
-
-        const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [id]);
         if (!rows || rows.length === 0) {
             return res.status(404).json({ success: false, error: { message: 'Product not found' } });
         }
 
-        res.json({ success: true, data: rows[0] });
+        const r = rows[0];
+        const transformed = addImagePathToRow(r, req);
+        transformed.price = r.special_price ?? r.regular_price;
+
+        res.json({ success: true, data: transformed });
     } catch (err) {
         next(err);
     }
@@ -81,7 +120,8 @@ const create = async (req, res, next) => {
 
         const insertedId = result.insertId;
         const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [insertedId]);
-        res.status(201).json({ success: true, data: rows[0] });
+        const transformed = addImagePathToRow(rows[0], req);
+        res.status(201).json({ success: true, data: transformed });
     } catch (err) {
         next(err);
     }
@@ -150,7 +190,8 @@ const update = async (req, res, next) => {
         );
 
         const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [id]);
-        res.json({ success: true, data: rows[0] });
+        const transformed = addImagePathToRow(rows[0], req);
+        res.json({ success: true, data: transformed });
     } catch (err) {
         next(err);
     }

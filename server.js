@@ -21,6 +21,9 @@ const invoiceItemsRoutes = require('./routes/invoiceItemsRoutes');
 // Config
 const PORT = process.env.PORT || 3000;
 
+// usiamo il middleware static di express (per rendere disponibile i file statici)
+app.use(express.static('public'));
+
 // Middleware globali
 app.use(express.json());
 
@@ -31,6 +34,7 @@ app.use(imagePath);
 app.use(cors({
 origin: 'http://localhost:5173' 
 }));
+
 
 // Route di test
 app.get('/', (req, res) => {
