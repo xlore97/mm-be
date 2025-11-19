@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const categoriesController = require('../controllers/categoriesController');
+const { validateCategory } = require("../middlewares/validation");
 
 // GET /api/categories
 router.get('/', categoriesController.getAll);
@@ -9,7 +10,7 @@ router.get('/', categoriesController.getAll);
 router.get('/:id', categoriesController.getById);
 
 // POST /api/categories
-router.post('/', categoriesController.create);
+router.post('/', validateCategory, categoriesController.create);
 
 // PUT /api/categories/:id
 router.put('/:id', categoriesController.update);

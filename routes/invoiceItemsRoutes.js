@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const invoiceItemsController = require('../controllers/invoiceItemsController');
+const { validateInvoiceItem } = require("../middlewares/validation");
 
 // GET /api/invoice_items
 router.get('/', invoiceItemsController.getAll);
@@ -9,7 +10,7 @@ router.get('/', invoiceItemsController.getAll);
 router.get('/:id', invoiceItemsController.getById);
 
 // POST /api/invoice_items
-router.post('/', invoiceItemsController.create);
+router.post('/', validateInvoiceItem, invoiceItemsController.create);
 
 // PUT /api/invoice_items/:id
 router.put('/:id', invoiceItemsController.update);

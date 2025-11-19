@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const invoicesController = require('../controllers/invoicesController');
+const { validateInvoice } = require("../middlewares/validation");
 
 // GET /api/invoices
 router.get('/', invoicesController.getAll);
@@ -9,7 +10,7 @@ router.get('/', invoicesController.getAll);
 router.get('/:id', invoicesController.getById);
 
 // POST /api/invoices
-router.post('/', invoicesController.create);
+router.post('/', validateInvoice, invoicesController.create);
 
 // PUT /api/invoices/:id
 router.put('/:id', invoicesController.update);

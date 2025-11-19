@@ -10,6 +10,7 @@ const notFound = require('./middlewares/notFound');
 const serverError = require('./middlewares/serverError');
 //import middleware gestione path immagini
 const imagePath = require("./middlewares/imagePath")
+const { validateProduct, validateCategory, validateCoupon, validateInvoice } = require("./middlewares/validation"); // importa il middleware
 
 // Routes
 const categoriesRoutes = require('./routes/categoriesRoutes');
