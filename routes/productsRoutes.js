@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const productsController = require('../controllers/productsController');
+const { validateProduct } = require("../middlewares/validation");
 
 // GET /api/products
 router.get('/', productsController.getAll);
@@ -9,7 +10,7 @@ router.get('/', productsController.getAll);
 router.get('/:id', productsController.getById);
 
 // POST /api/products
-router.post('/', productsController.create);
+router.post('/', validateProduct, productsController.create);
 
 // PUT /api/products/:id
 router.put('/:id', productsController.update);
