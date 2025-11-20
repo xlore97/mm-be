@@ -5,7 +5,7 @@ const Joi = require("joi");
 ============================ */
 const validateCategory = (req, res, next) => {
     const schema = Joi.object({
-        name: Joi.string().max(255).required()// nome obbligatorio (deve essere stringa)
+        name: Joi.string().max(255).required()
     });
 
     const { error } = schema.validate(req.body);
@@ -20,8 +20,6 @@ const validateCategory = (req, res, next) => {
     next();
 };
 
-module.exports = { validateCategory };
-
 
 /* ============================
    2. PRODUCTS
@@ -35,10 +33,7 @@ const validateProduct = (req, res, next) => {
         special_price: Joi.number().precision(2).min(0).allow(null).optional(),
         image: Joi.string().max(255).allow(null, "").optional(),
         promo: Joi.number().precision(2).min(0).max(999999.99).required(),
-        slug: Joi.string()
-            .max(255)
-            .regex(/^[a-z0-9-]+$/)
-            .required(),
+        slug: Joi.string().max(255).regex(/^[a-z0-9-]+$/).required(),
         quantity: Joi.number().integer().min(0).required(),
         status: Joi.string().valid("available", "not available").required()
     });
@@ -61,13 +56,12 @@ const validateProduct = (req, res, next) => {
 ============================ */
 const validateCoupon = (req, res, next) => {
   const schema = Joi.object({
-    id: Joi.number().integer().positive().optional(),       // opzionale se il DB lo genera
-    code: Joi.string().max(50).required(),                  // codice coupon obbligatorio
-    starting_date: Joi.date().iso().required(),             // data di inizio
-    expiration_date: Joi.date().iso().required(),           // data di scadenza
-    discount: Joi.number().precision(2).min(0).required(),  // sconto, decimal positivo
-    is_valid: Joi.number().integer().valid(0, 1).required(),// solo 0 o 1
-    created_at: Joi.date().iso().optional()                 // opzionale, generata dal DB
+    code: Joi.string().max(50).required(),
+    starting_date: Joi.date().iso().required(),
+    expiration_date: Joi.date().iso().required(),
+    discount: Joi.number().precision(2).min(0).required(),
+    is_valid: Joi.number().integer().valid(0, 1).required(),
+    created_at: Joi.date().iso().optional()
   });
 
   const { error } = schema.validate(req.body);
@@ -87,7 +81,6 @@ const validateCoupon = (req, res, next) => {
    4. INVOICES
 ============================ */
 const validateInvoice = (req, res, next) => {
-  // definizione schema
   const schema = Joi.object({
     total_price: Joi.number().precision(2).required(),
     payment_method: Joi.string().max(100).allow(null, ''),
@@ -95,8 +88,7 @@ const validateInvoice = (req, res, next) => {
     transaction_id: Joi.string().max(255).allow(null, ''),
     status: Joi.string()
       .valid('pending', 'paid', 'cancelled', 'refunded')
-      .required()
-      .custom((value) => value.trim().toLowerCase(), 'Normalize status'),
+      .required(),
     username: Joi.string().max(255).allow(null, ''),
     user_email: Joi.string().email().max(255).allow(null, ''),
     billing_address: Joi.object().required(),
@@ -114,7 +106,6 @@ const validateInvoice = (req, res, next) => {
     });
   }
 
-  // sovrascrive req.body con valori normalizzati
   req.body = value;
   next();
 };
@@ -153,11 +144,56 @@ const validateInvoiceItem = (req, res, next) => {
 };
 
 
+/* ============================
+   6. ORDERS
+============================ */
+const validateOrder = (req, res, next) => {
+  const itemSchema = Joi.object({
+    product_id: Joi.number().integer().positive().required(),
+    quantity: Joi.number().integer().min(1).required(),
+    regular_price: Joi.number().precision(2).min(0).required(),
+    special_price: Joi.number().precision(2).min(0).allow(null),
+    product_name: Joi.string().max(255).required()
+  });
+
+  const addressSchema = Joi.object({
+    city: Joi.string().max(255).required(),
+    street: Joi.string().max(255).required()
+  });
+
+  const schema = Joi.object({
+    total_price: Joi.number().precision(2).min(0).required(),
+    payment_method: Joi.string().max(100).required(),
+    username: Joi.string().max(255).required(),
+    user_email: Joi.string().email().max(255).required(),
+    billing_address: addressSchema.required(),
+    shipping_address: addressSchema.required(),
+    items: Joi.array().min(1).items(itemSchema).required(),
+    coupon_id: Joi.number().integer().positive().allow(null)
+  });
+
+  const { error, value } = schema.validate(req.body, { abortEarly: false });
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      errors: error.details.map(d => d.message)
+    });
+  }
+
+  req.body = value;
+  next();
+};
+
+
+/* ============================
+   EXPORT
+============================ */
 module.exports = {
     validateCategory,
     validateProduct,
     validateCoupon,
     validateInvoice,
-    validateInvoiceItem
+    validateInvoiceItem,
+    validateOrder
 };
-
