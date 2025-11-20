@@ -13,7 +13,7 @@ router.get('/:id', productsController.getById);
 router.post('/', validateProduct, productsController.create);
 
 // PUT /api/products/:id
-router.put('/:id', productsController.update);
+router.put('/:id', validateProduct, productsController.update);
 
 // DELETE /api/products/:id
 router.delete('/:id', productsController.deleteOne);

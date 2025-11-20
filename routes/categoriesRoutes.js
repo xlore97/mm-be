@@ -13,7 +13,7 @@ router.get('/:id', categoriesController.getById);
 router.post('/', validateCategory, categoriesController.create);
 
 // PUT /api/categories/:id
-router.put('/:id', categoriesController.update);
+router.put('/:id', validateCategory, categoriesController.update);
 
 // DELETE /api/categories/:id
 router.delete('/:id', categoriesController.deleteOne);

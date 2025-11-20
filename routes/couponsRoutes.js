@@ -13,7 +13,7 @@ router.get('/:id', couponsController.getById);
 router.post('/', validateCoupon, couponsController.create);
 
 // PUT /api/coupons/:id
-router.put('/:id', couponsController.update);
+router.put('/:id', validateCoupon, couponsController.update);
 
 // DELETE /api/coupons/:id
 router.delete('/:id', couponsController.deleteOne);

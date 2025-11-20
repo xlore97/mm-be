@@ -13,7 +13,7 @@ router.get('/:id', invoiceItemsController.getById);
 router.post('/', validateInvoiceItem, invoiceItemsController.create);
 
 // PUT /api/invoice_items/:id
-router.put('/:id', invoiceItemsController.update);
+router.put('/:id', validateInvoiceItem, invoiceItemsController.update);
 
 // DELETE /api/invoice_items/:id
 router.delete('/:id', invoiceItemsController.deleteOne);
