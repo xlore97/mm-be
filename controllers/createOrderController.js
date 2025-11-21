@@ -1,13 +1,42 @@
 // createOrderController.js
 const db = require('../config/db');
 const crypto = require('crypto'); // Per generare transaction_id e tracking_code univoci
+const { sendOrderConfirmationEmail } = require('../services/emailService');
 
 /**
  * Funzione per creare un ordine completo con fattura e articoli.
  * Controlla disponibilità prodotti e aggiorna quantità in magazzino.
  */
 const createOrder = async (req, res) => {
-    const { invoice, invoice_items } = req.body;
+    // Support two payload shapes:
+    // 1) { invoice, invoice_items } (existing) OR
+    // 2) { total_price, payment_method, username, user_email, billing_address, shipping_address, items: [...] }
+    let invoice = req.body.invoice;
+    let invoice_items = req.body.invoice_items;
+
+    // If the flattened shape is used by the frontend (validateOrder enforces this shape), map it
+    if ((!invoice || !invoice_items) && req.body.items) {
+        invoice = {
+            total_price: req.body.total_price,
+            payment_method: req.body.payment_method,
+            status: 'pending',
+            username: req.body.username,
+            user_email: req.body.user_email,
+            billing_address: req.body.billing_address,
+            shipping_address: req.body.shipping_address,
+            coupon_id: req.body.coupon_id || null,
+            // payment details (card) may be in req.body.payment — do not store PAN
+            payment: req.body.payment || null
+        };
+
+        // invoice_items expects an array of items; keep the frontend-provided items as-is
+        invoice_items = req.body.items.map((it) => ({
+            product_id: it.product_id,
+            quantity: it.quantity,
+            special_price: it.special_price ?? null,
+            // regular_price/product_name will be resolved from DB below
+        }));
+    }
 
     // Validazione iniziale: tutti i dati obbligatori devono essere presenti
     if (!invoice || !invoice_items || !Array.isArray(invoice_items) || invoice_items.length === 0) {
@@ -89,6 +118,38 @@ const createOrder = async (req, res) => {
         // Recupera ordine e articoli salvati per inviarli come risposta
         const [savedInvoice] = await connection.execute(`SELECT * FROM invoices WHERE id = ?`, [orderId]);
         const [savedItems] = await connection.execute(`SELECT * FROM invoice_item WHERE order_id = ?`, [orderId]);
+
+        // Proviamo a inviare la mail di conferma (non blocca la risposta in caso di errore)
+        try {
+            const invoiceRecord = savedInvoice[0];
+
+            const orderData = {
+                customerName: invoiceRecord.username,
+                // Use transaction_id as the order number if available, otherwise fallback to numeric DB id
+                orderNumber: invoiceRecord.transaction_id || orderId,
+                orderDate: invoiceRecord.created_at || new Date().toISOString(),
+                paymentMethod: invoiceRecord.payment_method,
+                shippingMethod: invoiceRecord.shipping_method || 'Standard',
+                items: savedItems.map(i => ({
+                    name: i.product_name,
+                    quantity: i.quantity,
+                    price: i.special_price ?? i.regular_price
+                })),
+                totals: {
+                    subtotal: invoiceRecord.total_price || 0,
+                    shippingCost: invoiceRecord.shipping_cost || 0,
+                    discount: invoiceRecord.discount || 0,
+                    total: invoiceRecord.total_price || 0
+                },
+                shippingAddress: typeof invoiceRecord.shipping_address === 'string' ? JSON.parse(invoiceRecord.shipping_address) : invoiceRecord.shipping_address,
+                billingAddress: typeof invoiceRecord.billing_address === 'string' ? JSON.parse(invoiceRecord.billing_address) : invoiceRecord.billing_address,
+                to: invoiceRecord.user_email || invoiceRecord.email || invoiceRecord.userEmail
+            };
+
+            await sendOrderConfirmationEmail(orderData);
+        } catch (mailErr) {
+            console.error('Errore durante l\'invio della mail di conferma:', mailErr);
+        }
 
         // Risposta al client
         res.status(201).json({
