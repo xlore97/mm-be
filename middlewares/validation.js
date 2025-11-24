@@ -56,10 +56,10 @@ const validateProduct = (req, res, next) => {
 ============================ */
 const validateCoupon = (req, res, next) => {
   const schema = Joi.object({
-    code: Joi.string().max(50).required(),
+    code: Joi.string().max(50).trim().uppercase().required(),
     starting_date: Joi.date().iso().required(),
-    expiration_date: Joi.date().iso().required(),
-    discount: Joi.number().precision(2).min(0).required(),
+    expiration_date: Joi.date().iso().min(Joi.ref("starting_date")).required(),
+    discount: Joi.number().precision(2).min(0).max(999999.99).required(),
     is_valid: Joi.number().integer().valid(0, 1).required(),
     created_at: Joi.date().iso().optional()
   });
