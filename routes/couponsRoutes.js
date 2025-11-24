@@ -6,6 +6,9 @@ const { validateCoupon } = require("../middlewares/validation");
 // GET /api/coupons
 router.get('/', couponsController.getAll);
 
+// Validate coupon by code: GET /api/coupons/validate?code=CODE
+router.get('/validate', couponsController.validateByCode);
+
 // GET /api/coupons/:id
 router.get('/:id', couponsController.getById);
 
