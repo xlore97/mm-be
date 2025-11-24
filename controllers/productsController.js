@@ -29,10 +29,34 @@ const getAll = async (req, res, next) => {
             return res.json({ success: true, data: transformed });
         }
 
-        // Default: include category name and compute price field
+        // 🔹 MODIFICA: aggiunta supporto filtraggio lato server
+        const search = req.query.search ? `%${req.query.search}%` : null;
+        const category = req.query.category && req.query.category !== "all" ? req.query.category : null;
+        const sortMode = req.query.sort || "newest";
+
+        let whereClauses = [];
+        let params = [];
+
+        if (search) {
+            whereClauses.push("(p.name LIKE ? OR p.description LIKE ?)");
+            params.push(search, search);
+        }
+
+        if (category) {
+            whereClauses.push("c.name = ?");
+            params.push(category);
+        }
+
+        let whereSQL = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
+
+        let orderSQL = "ORDER BY p.id DESC"; // default
+        if (sortMode === "newest") orderSQL = "ORDER BY p.id DESC";
+        else if (sortMode === "oldest") orderSQL = "ORDER BY p.id ASC";
+        else if (sortMode === "az") orderSQL = "ORDER BY p.name ASC";
+
         const [rows] = await db.query(
-            `SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id ORDER BY p.id DESC LIMIT ? OFFSET ?`,
-            [limit, offset]
+            `SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id ${whereSQL} ${orderSQL} LIMIT ? OFFSET ?`,
+            [...params, limit, offset]
         );
 
         const transformed = rows.map((r) => {
